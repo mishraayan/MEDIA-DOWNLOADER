@@ -9,7 +9,7 @@ export async function ffprobe(url) {
       try {
         // FIXED: Native spawn for yt-dlp CLI (pip-installed)
         const binary = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
-        const args = [url, "--dump-json", "--no-warnings"];
+        const args = [url, "--dump-json", "--no-warnings", "--cookies", "/etc/secrets/cookies"]; // Render path
         const p = spawn(binary, args);
 
         let out = "", err = "";
