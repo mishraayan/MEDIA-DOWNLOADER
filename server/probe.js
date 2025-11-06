@@ -8,7 +8,7 @@ export async function ffprobe(url) {
     return new Promise((resolve, reject) => {
       let attempts = 0;
       const maxAttempts = 3;
-      const retryDelay = 2000; // 2s base delay
+      const retryDelay = 2000;
 
       const tryProbe = () => {
         attempts++;
@@ -18,8 +18,9 @@ export async function ffprobe(url) {
             url,
             "--dump-json",
             "--no-warnings",
-            "--cookies", "/etc/secrets/cookies", // Render path
-            "--socket-timeout", "60", // FIXED: Plain number (seconds)
+            "--cookies", "/etc/secrets/cookies", // Load cookies
+            "--no-save-cookies", // FIXED: Prevent write to read-only file
+            "--socket-timeout", "60",
             "--fragment-retries", "5"
           ];
           const p = spawn(binary, args);
@@ -103,7 +104,7 @@ export async function ffprobe(url) {
             } else {
               reject(new Error("yt-dlp timed out after 60s and retries"));
             }
-          }, 60000); // 60s timeout
+          }, 60000);
           p.on("close", () => clearTimeout(timeout));
         } catch (e) {
           if (attempts < maxAttempts) {
