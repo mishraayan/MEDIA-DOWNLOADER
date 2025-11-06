@@ -1,15 +1,15 @@
-FROM node:25-alpine
+FROM node:25
 
-# Install system deps (Alpine for speed; includes FFmpeg/Python)
-RUN apk add --no-cache ffmpeg python3 py3-pip
+# Install system deps (Debian apt)
+RUN apt-get update -y && apt-get install -y ffmpeg python3 python3-pip
 
-# Install yt-dlp
-RUN pip3 install --upgrade yt-dlp
+# Install yt-dlp with no cache (avoids fetch issues)
+RUN pip3 install --no-cache-dir --upgrade yt-dlp
 
 # Set working dir
 WORKDIR /app
 
-# Copy package.json (caches npm install)
+# Copy package.json
 COPY server/package*.json ./
 
 # Install Node deps
@@ -19,7 +19,7 @@ RUN npm ci --only=production
 COPY server/ ./server/
 COPY public/ ./public/
 
-# Expose dynamic port
+# Expose port
 EXPOSE $PORT
 
 # Start server
