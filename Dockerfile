@@ -1,16 +1,12 @@
 FROM node:25
 
-# Install system deps
-RUN apt-get update -y && apt-get install -y \
-    ffmpeg \
-    python3 \
-    python3-pip \
-    && \
-    ln -s /usr/bin/python3 /usr/bin/python  # Symlink for legacy 'python' binary
-    && \
+# Install system deps (first RUN for apt)
+RUN apt-get update -y && \
+    apt-get install -y ffmpeg python3 python3-pip && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install yt-dlp via pip (isolated)
+# Install yt-dlp via pip
 RUN pip3 install --no-cache-dir --upgrade yt-dlp
 
 # Set working dir
@@ -19,7 +15,7 @@ WORKDIR /app
 # Copy package.json
 COPY server/package*.json ./
 
-# Install Node deps (ignore scripts to skip Python check if symlink fails)
+# Install Node deps
 RUN npm ci --only=production --ignore-scripts
 
 # Copy app code
