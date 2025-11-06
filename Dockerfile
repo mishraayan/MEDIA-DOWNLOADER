@@ -7,12 +7,12 @@ RUN apt-get update -y && apt-get install -y \
     python3-pip \
     python3-venv && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    pip3 install --break-system-packages pipx  # pipx needs this once
+    pip3 install --break-system-packages pipx
 
 # Install yt-dlp via pipx
 RUN pipx install yt-dlp && pipx ensurepath
 
-# FIXED: Ensure PATH includes pipx bin (runtime)
+# FIXED: Persist PATH for runtime (Node spawn)
 ENV PATH="/root/.local/bin:$PATH"
 
 # Set working dir
