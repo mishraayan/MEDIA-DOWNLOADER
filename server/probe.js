@@ -18,10 +18,10 @@ export async function ffprobe(url) {
             url,
             "--dump-json",
             "--no-warnings",
-            "--cookies", "/etc/secrets/cookies", // Load cookies
+            "--cookies", "/etc/secrets/cookies",
             "--socket-timeout", "60",
-            "--fragment-retries", "5"
-            // FIXED: Remove --no-save-cookies (invalid flag; ignore exit 1 for save errors instead)
+            "--fragment-retries", "5",
+            "--ignore-errors" // FIXED: Force JSON output on partial failures
           ];
           const p = spawn(binary, args);
 
@@ -40,9 +40,34 @@ export async function ffprobe(url) {
           });
 
           p.on("close", code => {
-            if (code === 0 || code === 1) { // FIXED: Ignore exit 1 (cookie save failure on read-only)
+            console.log(`[probe] yt-dlp exited with ${code} (attempt ${attempts}); stdout length: ${out.length}, stderr preview: ${err.substring(0, 100)}`);
+            const trimmedOut = out.trim();
+            if (trimmedOut.length === 0) {
+              const errorMsg = err.toString().trim();
+              if (errorMsg.includes("Sign in to confirm you’re not a bot") || errorMsg.includes("bot")) {
+                reject(new Error("YouTube bot detection triggered. Update cookies in Render Secrets and retry."));
+              } else if (attempts < maxAttempts) {
+                console.log(`[probe] Empty output (attempt ${attempts}), retrying...`);
+                setTimeout(tryProbe, retryDelay * attempts);
+              } else {
+                reject(new Error(errorMsg || "yt-dlp returned no data after retries"));
+              }
+            } else {
               try {
-                const info = JSON.parse(out);
+                // FIXED: Try parse on trimmed out; if fails, check for JSON block
+                let info;
+                if (trimmedOut.startsWith('{')) {
+                  info = JSON.parse(trimmedOut);
+                } else {
+                  // Extract JSON from mixed output (e.g., warnings + JSON)
+                  const jsonMatch = trimmedOut.match(/({[\s\S]*})/);
+                  if (jsonMatch) {
+                    info = JSON.parse(jsonMatch[1]);
+                  } else {
+                    throw new Error("No JSON block found in output");
+                  }
+                }
+
                 const duration = parseFloat(info.duration);
                 if (isNaN(duration)) throw new Error("Could not extract duration");
 
@@ -74,23 +99,13 @@ export async function ffprobe(url) {
                 console.log(`[probe] yt-dlp result:`, { title: result.title, duration });
                 resolve(result);
               } catch (e) {
+                console.error(`[probe] Parse error on output (attempt ${attempts}): ${e.message}. Out preview: ${trimmedOut.substring(0, 200)}`);
                 if (attempts < maxAttempts) {
                   console.log(`[probe] Parse error (attempt ${attempts}), retrying...`);
                   setTimeout(tryProbe, retryDelay * attempts);
                 } else {
-                  reject(e);
+                  reject(new Error(`Invalid JSON from yt-dlp after retries`));
                 }
-              }
-            } else {
-              const errorMsg = err.toString();
-              console.error(`[probe] yt-dlp exited with ${code} (attempt ${attempts}): ${errorMsg}`);
-              if (errorMsg.includes("Sign in to confirm you’re not a bot") || errorMsg.includes("bot")) {
-                reject(new Error("YouTube bot detection triggered. Update cookies in Render Secrets and retry."));
-              } else if (attempts < maxAttempts) {
-                console.log(`[probe] Retrying in ${retryDelay * attempts}ms...`);
-                setTimeout(tryProbe, retryDelay * attempts);
-              } else {
-                reject(new Error(errorMsg || `yt-dlp failed after ${maxAttempts} attempts`));
               }
             }
           });
