@@ -12,7 +12,8 @@ RUN apt-get update -y && apt-get install -y \
 # Install yt-dlp via pipx
 RUN pipx install yt-dlp && pipx ensurepath
 
-# ENV PATH="/root/.local/bin:$PATH"  # Auto-added by ensurepath
+# FIXED: Ensure PATH includes pipx bin (runtime)
+ENV PATH="/root/.local/bin:$PATH"
 
 # Set working dir
 WORKDIR /app
