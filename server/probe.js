@@ -19,9 +19,9 @@ export async function ffprobe(url) {
             "--dump-json",
             "--no-warnings",
             "--cookies", "/etc/secrets/cookies", // Load cookies
-            "--no-save-cookies", // FIXED: Prevent write to read-only file
             "--socket-timeout", "60",
             "--fragment-retries", "5"
+            // FIXED: Remove --no-save-cookies (invalid flag; ignore exit 1 for save errors instead)
           ];
           const p = spawn(binary, args);
 
@@ -40,7 +40,7 @@ export async function ffprobe(url) {
           });
 
           p.on("close", code => {
-            if (code === 0) {
+            if (code === 0 || code === 1) { // FIXED: Ignore exit 1 (cookie save failure on read-only)
               try {
                 const info = JSON.parse(out);
                 const duration = parseFloat(info.duration);
