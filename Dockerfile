@@ -1,26 +1,28 @@
-FROM node:25
+# Dockerfile (put at repo root)
+FROM node:20-bookworm-slim
 
-# Install system deps (Debian apt)
-RUN apt-get update -y && apt-get install -y ffmpeg python3 python3-pip
+# Install FFmpeg for transcoding
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install yt-dlp with no cache (avoids fetch issues)
-RUN pip3 install --no-cache-dir --upgrade yt-dlp
-
-# Set working dir
+# App root
 WORKDIR /app
 
-# Copy package.json
-COPY server/package*.json ./
+# Install server deps (where your package.json lives)
+COPY server/package.json server/package-lock.json* ./server/
+WORKDIR /app/server
+RUN npm ci --omit=dev || npm i --omit=dev
 
-# Install Node deps
-RUN npm ci --only=production
+# Copy source
+WORKDIR /app
+COPY server ./server
+COPY public ./public
 
-# Copy app code
-COPY server/ ./server/
-COPY public/ ./public/
-
-# Expose port
-EXPOSE $PORT
+# Runtime config
+ENV NODE_ENV=production
+ENV PORT=8080
+EXPOSE 8080
 
 # Start server
-CMD ["npm", "start"]
+WORKDIR /app/server
+CMD ["node", "server.js"]
