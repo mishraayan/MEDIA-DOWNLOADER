@@ -83,7 +83,8 @@ export function transcodeVideo({ url, quality, format = "mp4", vcodec = "h264", 
       `-f`, `bestvideo[height<=${height}]+bestaudio/best[height<=${height}]/${filter}`,
       `-o`, `-`, // Pipe to stdout
       `--no-warnings`,
-      `--quiet`
+      `--quiet`,
+      `--cookies`, `/etc/secrets/cookies`  // FIXED: Add cookies for bot bypass
     ];
     // FIXED: Native spawn for streaming (yt-dlp CLI)
     const binary = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
@@ -189,7 +190,8 @@ export function extractAudio({ url, kbps = 320, codec = "mp3", onProgress }) {
       `-f`, `bestaudio[ext=m4a]/bestaudio/best`,
       `-o`, `-`,
       `--no-warnings`,
-      `--quiet`
+      `--quiet`,
+      `--cookies`, `/etc/secrets/cookies`  // FIXED: Add cookies for bot bypass
     ];
     // FIXED: Native spawn
     const binary = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
